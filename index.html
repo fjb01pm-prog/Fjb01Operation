@@ -6644,7 +6644,7 @@ function startBackgroundSync(){
 // CLOUD API & DUAL ENVIRONMENT BRIDGE (GAS + VERCEL HOSTING)
 // ============================================================
 
-const DEFAULT_FJB_API_URL = '';
+const DEFAULT_FJB_API_URL = 'https://script.google.com/macros/s/AKfycbxucnBKxz4CqOHMsmyGWXR4OLX-CIWj6q5g0NxAxb0WyWs0wxHFj_sk9wlVSbBchEEO/exec';
 
 function isGasEnvironment() {
   return typeof google !== 'undefined' && Boolean(google && google.script && google.script.run);
