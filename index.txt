@@ -3805,12 +3805,6 @@ td{
       <h2>Login</h2>
       <div class="lead">Masuk menggunakan NIK / NRP dan password.</div>
 
-      <!-- Cloud API Mode Indicator Banner -->
-      <div id="loginCloudBanner" style="display:none;margin-top:10px;margin-bottom:12px;padding:8px 12px;border-radius:8px;font-size:11px;align-items:center;justify-content:space-between;gap:8px;">
-        <span id="loginCloudBannerText">☁️ Mode Vercel Cloud Live</span>
-        <button type="button" class="btn sm" onclick="openApiConfigModal()" style="padding:2px 8px;font-size:10px;height:24px;border-radius:6px;">⚙️ Atur API</button>
-      </div>
-
       <div class="login-error" id="loginError"></div>
 
       <div class="login-field">
@@ -3887,7 +3881,6 @@ td{
           <option>NIGHT</option>
         </select>
         <div class="top-date" id="topDate">-</div>
-        <button class="btn icon" id="btnCloudStatus" title="Koneksi Cloud API Spreadsheet" onclick="openApiConfigModal()" style="border-radius:20px;font-size:11px;font-weight:700;padding:0 10px;gap:5px;">☁️ <span id="cloudStatusText">Cloud</span></button>
         <button class="btn top-refresh" title="Refresh" onclick="refreshCurrentPage()">↻ Refresh</button>
         <button class="btn primary quick-input" onclick="openQuickInput()">＋ Quick Input</button>
       </div>
@@ -4700,44 +4693,6 @@ td{
     <div class="modal-head"><h3 id="modalTitle">Modal</h3><button class="modal-close" onclick="closeModal()">×</button></div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-foot" id="modalFoot"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" id="modalSave">Simpan</button></div>
-  </div>
-</div>
-
-<!-- MODAL CLOUD API CONFIGURATION (VERCEL & EXTERNAL MOBILE ACCESS) -->
-<div class="modal-backdrop" id="apiConfigModal" onclick="if(event.target===this)closeApiConfigModal()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:540px;width:95%">
-    <div class="modal-head">
-      <h3 style="display:flex;align-items:center;gap:8px">
-        <span>☁️</span> Konfigurasi Cloud API (Google Spreadsheet)
-      </h3>
-      <button class="modal-close" onclick="closeApiConfigModal()">×</button>
-    </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:var(--blueSoft);border:1px solid #c8e5f8;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;color:#0b4d75">
-        <b>💡 Koneksi Cloud Vercel & Mobile:</b>
-        <div>Agar aplikasi yang di-hosting di Vercel dapat membaca & menyimpan data ke database Google Spreadsheet secara real-time, masukkan URL <b>Web App Deployment</b> dari Google Apps Script di bawah ini.</div>
-      </div>
-      
-      <div class="form-group" style="display:flex;flex-direction:column;gap:6px">
-        <label style="font-size:11px;font-weight:700;color:var(--muted)">URL WEB APP GOOGLE APPS SCRIPT:</label>
-        <input type="url" id="inputApiUrl" class="input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" style="width:100%;font-size:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px">
-        <small style="font-size:10px;color:var(--muted)">Didapat dari Google Sheets > Extensions > Apps Script > Deploy > Manage Deployments > Web App URL.</small>
-      </div>
-
-      <div id="apiTestStatusBox" style="display:none;padding:10px 12px;border-radius:8px;font-size:11px;font-weight:600"></div>
-
-      <div style="background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11px;color:#475467">
-        <b>⚙️ Status Lingkungan Saat Ini:</b>
-        <div id="envStatusInfo" style="margin-top:4px;font-family:monospace;font-size:11px">-</div>
-      </div>
-    </div>
-    <div class="modal-foot" style="display:flex;justify-content:space-between;align-items:center">
-      <button type="button" class="btn" onclick="testApiConnection()" id="btnTestApi" style="color:var(--blue);border-color:var(--blue)">⚡ Tes Koneksi</button>
-      <div style="display:flex;gap:8px">
-        <button type="button" class="btn" onclick="closeApiConfigModal()">Tutup</button>
-        <button type="button" class="btn primary" onclick="saveApiConfig()">💾 Simpan Konfigurasi</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -6644,191 +6599,16 @@ function startBackgroundSync(){
 // CLOUD API & DUAL ENVIRONMENT BRIDGE (GAS + VERCEL HOSTING)
 // ============================================================
 
-const DEFAULT_FJB_API_URL = 'https://script.google.com/macros/s/AKfycbxucnBKxz4CqOHMsmyGWXR4OLX-CIWj6q5g0NxAxb0WyWs0wxHFj_sk9wlVSbBchEEO/exec';
+const FJB_API_URL = 'https://script.google.com/macros/s/AKfycbxucnBKxz4CqOHMsmyGWXR4OLX-CIWj6q5g0NxAxb0WyWs0wxHFj_sk9wlVSbBchEEO/exec';
 
 function isGasEnvironment() {
   return typeof google !== 'undefined' && Boolean(google && google.script && google.script.run);
-}
-
-function getFjbApiUrl() {
-  try {
-    return localStorage.getItem('FJB_API_URL') || window.FJB_CONFIG_API_URL || DEFAULT_FJB_API_URL || '';
-  } catch(e) {
-    return DEFAULT_FJB_API_URL || '';
-  }
-}
-
-function setFjbApiUrl(url) {
-  try {
-    localStorage.setItem('FJB_API_URL', (url || '').trim());
-  } catch(e) {}
-}
-
-function updateCloudStatusUI() {
-  const isGas = isGasEnvironment();
-  const apiUrl = getFjbApiUrl();
-  const cloudBtn = document.getElementById('btnCloudStatus');
-  const cloudText = document.getElementById('cloudStatusText');
-  const banner = document.getElementById('loginCloudBanner');
-  const bannerText = document.getElementById('loginCloudBannerText');
-  const envInfo = document.getElementById('envStatusInfo');
-
-  if (isGas) {
-    if (cloudBtn) {
-      cloudBtn.style.background = 'var(--greenSoft)';
-      cloudBtn.style.color = 'var(--green)';
-      cloudBtn.style.borderColor = '#c3edd7';
-      if (cloudText) cloudText.textContent = 'GAS Live';
-    }
-    if (banner) {
-      banner.style.display = 'flex';
-      banner.style.background = 'var(--greenSoft)';
-      banner.style.color = 'var(--green)';
-      banner.style.border = '1px solid #c3edd7';
-      if (bannerText) bannerText.innerHTML = '☁️ <b>Google Apps Script</b> (Internal Native Mode)';
-    }
-    if (envInfo) {
-      envInfo.innerHTML = '<span style="color:var(--green)">● Terkoneksi via Google Apps Script (Internal Mode)</span>';
-    }
-  } else {
-    if (apiUrl) {
-      if (cloudBtn) {
-        cloudBtn.style.background = 'var(--greenSoft)';
-        cloudBtn.style.color = 'var(--green)';
-        cloudBtn.style.borderColor = '#c3edd7';
-        if (cloudText) cloudText.textContent = 'Cloud Connected';
-      }
-      if (banner) {
-        banner.style.display = 'flex';
-        banner.style.background = 'var(--greenSoft)';
-        banner.style.color = 'var(--green)';
-        banner.style.border = '1px solid #c3edd7';
-        if (bannerText) bannerText.innerHTML = '☁️ <b>Cloud API Connected</b> (Vercel Live)';
-      }
-      if (envInfo) {
-        envInfo.innerHTML = '<span style="color:var(--green)">● Vercel / External Mode &bull; API URL Terkonfigurasi</span>';
-      }
-    } else {
-      if (cloudBtn) {
-        cloudBtn.style.background = 'var(--amberSoft)';
-        cloudBtn.style.color = '#8f5800';
-        cloudBtn.style.borderColor = '#fedf9e';
-        if (cloudText) cloudText.textContent = 'Atur API';
-      }
-      if (banner) {
-        banner.style.display = 'flex';
-        banner.style.background = 'var(--amberSoft)';
-        banner.style.color = '#8f5800';
-        banner.style.border = '1px solid #fedf9e';
-        if (bannerText) bannerText.innerHTML = '⚠️ <b>Cloud API Belum Diatur</b> (Klik untuk atur URL)';
-      }
-      if (envInfo) {
-        envInfo.innerHTML = '<span style="color:var(--amber)">● Vercel / External Mode &bull; URL API belum diisi</span>';
-      }
-    }
-  }
-}
-
-function openApiConfigModal() {
-  const modal = document.getElementById('apiConfigModal');
-  const input = document.getElementById('inputApiUrl');
-  const statusBox = document.getElementById('apiTestStatusBox');
-  if (input) input.value = getFjbApiUrl();
-  if (statusBox) statusBox.style.display = 'none';
-  updateCloudStatusUI();
-  if (modal) modal.classList.add('show');
-}
-
-function closeApiConfigModal() {
-  const modal = document.getElementById('apiConfigModal');
-  if (modal) modal.classList.remove('show');
-}
-
-async function testApiConnection() {
-  const input = document.getElementById('inputApiUrl');
-  const statusBox = document.getElementById('apiTestStatusBox');
-  const testBtn = document.getElementById('btnTestApi');
-  const url = (input ? input.value : '').trim();
-
-  if (!url) {
-    if (statusBox) {
-      statusBox.style.display = 'block';
-      statusBox.style.background = 'var(--redSoft)';
-      statusBox.style.color = 'var(--red)';
-      statusBox.style.border = '1px solid #fecdd3';
-      statusBox.innerHTML = '❌ Masukkan URL Web App Apps Script terlebih dahulu.';
-    }
-    return;
-  }
-
-  if (testBtn) {
-    testBtn.disabled = true;
-    testBtn.textContent = '⏳ Menghubungi...';
-  }
-
-  if (statusBox) {
-    statusBox.style.display = 'block';
-    statusBox.style.background = 'var(--blueSoft)';
-    statusBox.style.color = 'var(--blue)';
-    statusBox.style.border = '1px solid #bae6fd';
-    statusBox.innerHTML = '⏳ Menghubungi Google Apps Script API...';
-  }
-
-  try {
-    const pingUrl = url + (url.includes('?') ? '&' : '?') + 'ping=1';
-    const res = await fetch(pingUrl, { method: 'GET' });
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
-    const data = await res.json();
-    if (statusBox) {
-      statusBox.style.background = 'var(--greenSoft)';
-      statusBox.style.color = 'var(--green)';
-      statusBox.style.border = '1px solid #c3edd7';
-      statusBox.innerHTML = '✅ <b>Koneksi Sukses!</b> ' + (data.message || 'API Live') + ' (v' + (data.version || '2.6.5') + ')';
-    }
-  } catch (err) {
-    try {
-      const resPost = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getSystemStatus', args: [] })
-      });
-      const txt = await resPost.text();
-      if (statusBox) {
-        statusBox.style.background = 'var(--greenSoft)';
-        statusBox.style.color = 'var(--green)';
-        statusBox.style.border = '1px solid #c3edd7';
-        statusBox.innerHTML = '✅ <b>Koneksi Sukses!</b> Google Apps Script API merespons dengan baik.';
-      }
-    } catch(err2) {
-      if (statusBox) {
-        statusBox.style.background = 'var(--redSoft)';
-        statusBox.style.color = 'var(--red)';
-        statusBox.style.border = '1px solid #fecdd3';
-        statusBox.innerHTML = '❌ <b>Gagal Terhubung:</b> ' + (err.message || String(err)) + '<br><small>Pastikan Deployment Web App Apps Script di-set "Execute as: Me" dan "Who has access: Anyone".</small>';
-      }
-    }
-  } finally {
-    if (testBtn) {
-      testBtn.disabled = false;
-      testBtn.textContent = '⚡ Tes Koneksi';
-    }
-  }
-}
-
-function saveApiConfig() {
-  const input = document.getElementById('inputApiUrl');
-  const url = (input ? input.value : '').trim();
-  setFjbApiUrl(url);
-  updateCloudStatusUI();
-  closeApiConfigModal();
-  showToast('Konfigurasi Cloud API berhasil disimpan.');
 }
 
 function init(){
   setDefaultDates();
   bindLoginEnter();
   restoreToken();
-  updateCloudStatusUI();
 }
 
 function server(fn,...args){
@@ -6842,16 +6622,8 @@ function server(fn,...args){
       return;
     }
 
-    // Mode 2: External / Vercel Web Hosting -> Direct HTTP POST to Apps Script Web App
-    const apiUrl = getFjbApiUrl();
-    if(!apiUrl){
-      openApiConfigModal();
-      reject(new Error('Koneksi Cloud API belum diatur. Silakan masukkan URL Web App Apps Script Anda.'));
-      return;
-    }
-
-    // Menggunakan text/plain agar browser TIDAK mengirimkan preflight OPTIONS (CORS simple request)
-    fetch(apiUrl,{
+    // Mode 2: Vercel / External Web Hosting -> Direct HTTP POST to Google Apps Script Web App
+    fetch(FJB_API_URL,{
       method:'POST',
       headers:{
         'Content-Type':'text/plain;charset=utf-8'
@@ -6872,7 +6644,7 @@ function server(fn,...args){
       })
       .catch(err=>{
         console.error('API Fetch Error:',err);
-        reject(new Error('Gagal menghubungi Cloud API: '+(err.message||String(err))+'. Pastikan Web App Apps Script di-deploy dengan opsi "Who has access: Anyone".'));
+        reject(new Error('Koneksi ke database gagal: '+(err.message||String(err))));
       });
   });
 }

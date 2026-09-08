@@ -31,6 +31,7 @@
 
 const FJB_VERSION = '2.6.5';
 const SESSION_TTL_HOURS = 8;
+const FJB_DEFAULT_SPREADSHEET_ID = '16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo';
 
 // Fast runtime object cache.
 // Spreadsheet/Sheet objects are reused inside a warm Apps Script instance.
@@ -1587,25 +1588,28 @@ function getDb_() {
   }
 
   const props = PropertiesService.getScriptProperties();
-  let id = props.getProperty('FJB_SPREADSHEET_ID');
+  let id = props.getProperty('FJB_SPREADSHEET_ID') || FJB_DEFAULT_SPREADSHEET_ID;
 
-  if (!id) {
-    const active = SpreadsheetApp.getActiveSpreadsheet();
-
-    if (!active) {
-      throw new Error(
-        'Database belum terhubung. Jalankan setupFJBSystem() terlebih dahulu.'
-      );
+  if (id) {
+    try {
+      FJB_DB_INSTANCE_ = SpreadsheetApp.openById(id);
+      return FJB_DB_INSTANCE_;
+    } catch (openErr) {
+      // Fallback ke active spreadsheet jika openById gagal
     }
+  }
 
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) {
     id = active.getId();
     props.setProperty('FJB_SPREADSHEET_ID', id);
     FJB_DB_INSTANCE_ = active;
     return FJB_DB_INSTANCE_;
   }
 
-  FJB_DB_INSTANCE_ = SpreadsheetApp.openById(id);
-  return FJB_DB_INSTANCE_;
+  throw new Error(
+    'Database belum terhubung. Pastikan FJB_DEFAULT_SPREADSHEET_ID atau setupFJBSystem() sudah dijalankan.'
+  );
 }
 
 
