@@ -12,8 +12,8 @@
   <link rel="manifest" href="manifest.json">
   <title>FJB Operations Control - V2.6.5 HM LIVE RECHECK Fully Audited</title>
 
-  <!-- SheetJS dipakai hanya untuk import roster XLS/XLSX di browser -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS dipakai hanya untuk import roster XLS/XLSX di browser (defer agar tidak memblokir render awal) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
@@ -7492,8 +7492,62 @@ function showLoginError(msg){const e=document.getElementById('loginError');e.tex
 function clearLoginError(){document.getElementById('loginError').classList.remove('show')}
 function saveToken(token,remember){
   sessionStorage.removeItem('fjb_token'); localStorage.removeItem('fjb_token');
+  sessionStorage.removeItem('fjb_session'); localStorage.removeItem('fjb_session');
   (remember?localStorage:sessionStorage).setItem('fjb_token',token);
+  if(APP.session){
+    (remember?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
+  }
 }
+
+function loadLatestBrowserCache(){
+  try{
+    const raw=localStorage.getItem(browserDataCacheKey());
+    if(!raw) return null;
+    const saved=JSON.parse(raw);
+    if(!saved||!saved.bundle) return null;
+    return saved.bundle;
+  }catch(err){
+    return null;
+  }
+}
+
+async function verifySessionAndRefreshBackground(){
+  try{
+    const sessionRes=await waitWithTimeout(
+      serverJson('apiSessionJson',APP.token),
+      8000,
+      'SESSION_RESTORE_TIMEOUT'
+    );
+    if(!sessionRes?.ok||!sessionRes?.session){
+      throw new Error('Session expired');
+    }
+    APP.session=sessionRes.session;
+    try{
+      (localStorage.getItem('fjb_token')?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
+    }catch(_){}
+
+    const stampRes=await waitWithTimeout(
+      serverJson('apiGetCacheStampJson',APP.token),
+      5000,
+      'STAMP_TIMEOUT'
+    );
+    const serverStamp=String(stampRes?.stamp||'');
+    if(serverStamp && serverStamp!==APP.cacheStamp){
+      const freshBundle=await warmLoginData(false);
+      if(freshBundle && APP.currentPage==='dashboard'){
+        renderDashboard();
+      }
+    }
+  }catch(err){
+    const msg=String(err||'');
+    if(msg.includes('Session expired')||msg.includes('tidak valid')){
+      sessionStorage.removeItem('fjb_token');localStorage.removeItem('fjb_token');
+      sessionStorage.removeItem('fjb_session');localStorage.removeItem('fjb_session');
+      showLogin();
+    }
+  }
+}
+
 async function restoreToken(){
   APP.token=
     sessionStorage.getItem(
@@ -7509,6 +7563,32 @@ async function restoreToken(){
     return;
   }
 
+  // 1. INSTANT RESTORE (< 50ms): Render seketika menggunakan session & cache lokal
+  let fastSession=null;
+  try{
+    const rawSession=sessionStorage.getItem('fjb_session')||localStorage.getItem('fjb_session');
+    if(rawSession) fastSession=JSON.parse(rawSession);
+  }catch(_){}
+
+  const cachedBundle=loadLatestBrowserCache();
+
+  if(fastSession && cachedBundle){
+    APP.session=fastSession;
+    APP.justLoggedIn=false;
+    resetPageCaches();
+    applyInitialCacheBundle(cachedBundle,false);
+
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    renderSidebar();
+    await navigate('dashboard',true);
+    startBackgroundSync();
+
+    verifySessionAndRefreshBackground();
+    return;
+  }
+
+  // 2. FRESH RESTORE: Jika cache lokal belum ada, ambil dari server
   showLoading(
     'Memulihkan aplikasi...'
   );
@@ -7540,6 +7620,10 @@ async function restoreToken(){
       sessionRes.session;
 
     APP.justLoggedIn=false;
+
+    try{
+      (localStorage.getItem('fjb_token')?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
+    }catch(_){}
 
     resetPageCaches();
 
@@ -7583,6 +7667,14 @@ async function restoreToken(){
 
     localStorage.removeItem(
       'fjb_token'
+    );
+
+    sessionStorage.removeItem(
+      'fjb_session'
+    );
+
+    localStorage.removeItem(
+      'fjb_session'
     );
 
     showLogin();
@@ -7823,7 +7915,7 @@ async function logout(){
   });
   if(!ok) return;
   try{if(APP.token)await server('apiLogout',APP.token)}catch(_){}
-  sessionStorage.removeItem('fjb_token');localStorage.removeItem('fjb_token');clearFastCache();
+  sessionStorage.removeItem('fjb_token');localStorage.removeItem('fjb_token');sessionStorage.removeItem('fjb_session');localStorage.removeItem('fjb_session');clearFastCache();
   showLogin();
 }
 function applyIdentity(){
