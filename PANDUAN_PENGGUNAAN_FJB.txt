@@ -1,0 +1,138 @@
+================================================================================
+                    PANDUAN PENGGUNAAN APLIKASI OPERASIONAL
+                    FJB OPERATIONS CONTROL SYSTEM (v2.6.5)
+                        PT. FORTUNA JAYA BERSAUDARA
+================================================================================
+
+Aplikasi ini adalah sistem terpadu pemantauan dan kontrol operasional armada,
+manpower, jam kerja (HM), hauling batu bara/material, bahan bakar, dan servis
+mekanik yang terhubung secara real-time ke Google Spreadsheet perusahaan.
+
+--------------------------------------------------------------------------------
+1. LINK AKSES & DATABASE
+--------------------------------------------------------------------------------
+- Link Aplikasi Web / PWA (Vercel) :
+  https://fjb01-operation-001.vercel.app
+
+- Link Repository Kode (GitHub)   :
+  https://github.com/fjb01pm-prog/Fjb01Operation
+
+- Link Database (Google Sheets)   :
+  https://docs.google.com/spreadsheets/d/16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo/edit
+
+--------------------------------------------------------------------------------
+2. DAFTAR AKUN PENGGUNA & HAK AKSES (ROLE)
+--------------------------------------------------------------------------------
+Sistem memiliki 4 peran (role) pengguna:
+
+1. ADMIN
+   - NIK / NRP : 9000001
+   - Password  : admin123
+   - Wewenang  : Akses penuh ke semua modul, master data massal, konfigurasi,
+                 validasi audit transaksi, dan monitoring eksekutif bulanan.
+
+2. GL / PENGAWAS LAPANGAN
+   - NIK / NRP : 3102001
+   - Password  : gl12345
+   - Wewenang  : Kontrol operasional harian shift Day/Night, pengaturan roster,
+                 absensi driver, dan pencatatan kendala (hujan/slippery).
+
+3. OPERATOR / DRIVER
+   - NIK / NRP : 3101021
+   - Password  : op12345
+   - Wewenang  : Pengisian form keselamatan P2H (inspeksi fisik awal/akhir unit),
+                 pelaporan HM awal/akhir kerja, dan status unit yang dibawa.
+
+4. MECHANIC / MEKANIK
+   - NIK / NRP : 4102101
+   - Password  : mech12345
+   - Wewenang  : Modul maintenance, pelaporan unit breakdown, status servis unit
+                 (RFU/Breakdown/Service), estimasi jam perbaikan, dan sparepart.
+
+* Catatan: Tersedia tombol "Akun Demo" di bawah tombol login untuk uji coba cepat.
+
+--------------------------------------------------------------------------------
+3. CARA AKSES & INSTALL DI SMARTPHONE (ANDROID & IPHONE)
+--------------------------------------------------------------------------------
+Aplikasi berbasis PWA (Progressive Web App), sangat enteng (< 1 MB), dan dapat
+di-install langsung ke layar utama HP tanpa perlu download dari Play Store:
+
+A. Di HP Android (Google Chrome):
+   1. Buka https://fjb01-operation-001.vercel.app di Google Chrome.
+   2. Ketuk ikon titik tiga (⋮) di kanan atas browser.
+   3. Pilih "Tambahkan ke Layar Utama" (Add to Home screen) atau "Install Aplikasi".
+   4. Ikon aplikasi FJB Ops akan muncul di menu HP Anda dan terbuka layar penuh.
+
+B. Di iPhone / iPad (Safari):
+   1. Buka https://fjb01-operation-001.vercel.app di browser Safari.
+   2. Ketuk tombol Bagikan (Share - ikon kotak dengan panah ke atas di bawah).
+   3. Gulir ke bawah lalu pilih "Add to Home Screen" (Tambah ke Layar Utama).
+   4. Ketuk "Add" di pojok kanan atas.
+
+C. Di Komputer / Laptop:
+   - Cukup buka link di browser (Chrome / Edge), tampilan otomatis menyesuaikan
+     layar monitor lebar (Desktop Control Room).
+
+--------------------------------------------------------------------------------
+4. PANDUAN PENGGUNAAN MODUL-MODUL UTAMA
+--------------------------------------------------------------------------------
+
+1. DASHBOARD OPERASIONAL (PUSAT KENDALI)
+   - Executive Health (%): Skor performa shift hari ini berdasarkan kesiapan unit.
+   - Production (%): Realisasi produksi tonase hauling vs target shift.
+   - Fleet Availability (%): Persentase unit siap kerja (Ready / RFU).
+   - Manpower Fulfillment (%): Jumlah driver yang masuk dibanding unit tersedia.
+   - P2H Compliance (%): Kepatuhan inspeksi harian sebelum unit dioperasikan.
+   - Toggle Periode:
+     * Mode "Harian": Melihat rincian kondisi shift hari ini.
+     * Mode "1 Bulan Penuh": Akumulasi grafik dan angka selama 1 bulan kalender.
+
+2. QUICK INPUT (TOMBOL POJOK KANAN ATAS "＋ Quick Input")
+   - Tombol cepat untuk memasukkan laporan tanpa harus berpindah halaman:
+     Pilih jenis transaksi (Hauling, HM, P2H, atau Breakdown) -> isi -> Simpan.
+     Data seketika masuk ke database Google Spreadsheet.
+
+3. UNIT MONITORING & HM OPERATION
+   - Unit Monitoring: Memantau 10+ unit dump truck, driver yang membawa, kondisi
+     unit (READY, BREAKDOWN, SERVICE), serta log riwayat kerusakan.
+   - HM Operation: Memverifikasi angka Hour Meter (HM) awal dan akhir. Sistem
+     dilengkapi proteksi "HM Live Recheck" agar HM akhir tidak lebih kecil dari awal.
+
+4. HAULING / TONASE & PRODUKSI
+   - Mencatat ritase perjalanan pengangkutan batu bara / material tambang.
+   - Menghubungkan unit, driver, lokasi loading (pit), dan lokasi dumping (ROM).
+   - Data otomatis mengkalkulasi pencapaian target produksi di dashboard.
+
+5. ROSTER & MANPOWER
+   - Memantau jadwal kerja kru: Shift Day (Siang), Night (Malam), Off, atau Cuti.
+   - Import Roster Excel: Pengawas bisa langsung upload jadwal format .xlsx/.xls.
+
+6. FUEL USAGE & WASHING
+   - Fuel Usage: Mencatat pengisian solar per unit, menghitung rasio liter/jam HM
+     untuk memantau efisiensi bahan bakar dan mendeteksi unit boros.
+   - Washing: Antrean dan checklist pencucian unit sebelum masuk shift berikutnya.
+
+7. MASTER DATA (FITUR BULK EDIT & EXCEL PASTE)
+   - Modul khusus Admin untuk mengelola data unit, karyawan, lokasi, dan target.
+   - Fitur 1 (Bulk Edit): Klik "Bulk Edit" untuk mengedit banyak baris langsung di
+     tabel, lalu simpan semua sekaligus dengan 1x klik tombol simpan.
+   - Fitur 2 (Excel Paste Importer): Klik "Tambah Massal", copy baris data dari
+     Excel/Spreadsheet, paste ke kotak input, dan simpan puluhan data sekaligus.
+
+8. REPORTING & EXPORT PDF/PRINT
+   - Tersedia laporan rekap shift, harian, dan bulanan yang siap dicetak bersih
+     (Print-ready) tanpa elemen navigasi, cocok untuk lampiran meeting harian.
+
+--------------------------------------------------------------------------------
+5. ALUR REVISI / PERUBAHAN KE DEPAN
+--------------------------------------------------------------------------------
+Jika di kemudian hari Anda ingin mengubah tampilan, warna, tombol, atau rumus:
+1. Sampaikan revisi ke AI assistant.
+2. Kode akan disesuaikan di komputer lokal.
+3. Anda cukup menjalankan 1 perintah di terminal:
+   git push
+4. Vercel akan otomatis meng-update website dalam 10 detik tanpa perlu setting ulang!
+
+================================================================================
+          DOKUMEN OPERASIONAL RESMI - PT. FORTUNA JAYA BERSAUDARA (2026)
+================================================================================
