@@ -1,19 +1,6 @@
 {
   "name": "fjb01operation",
   "version": "2.6.5",
-  "description": "FJB Operations Control System - Monitoring & Operation System",
-  "main": "index.html",
-  "scripts": {
-    "start": "npx serve .",
-    "build": "echo 'Build complete'"
-  },
-  "keywords": [
-    "fjb",
-    "operations",
-    "control",
-    "monitoring",
-    "pwa"
-  ],
-  "author": "PT. Fortuna Jaya Bersaudara",
-  "license": "UNLICENSED"
+  "description": "FJB Operations Control System",
+  "private": true
 }
