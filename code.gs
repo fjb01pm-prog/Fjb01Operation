@@ -9877,16 +9877,55 @@ function apiSaveUserAccount(token, data) {
         throw new Error('NIK / NRP wajib diisi.');
       }
 
-      const person = findOne_(
+      let person = findOne_(
         FJB_SHEETS.PERSONNEL,
         'nik',
         nik
       );
 
+      const now = new Date();
+
       if (!person) {
-        throw new Error(
-          'Personnel belum tersedia. Tambahkan dahulu pada Master Personnel.'
+        const personName = String(data.name || '').trim() || ('User ' + nik);
+        const personCategory = String(
+          data.category ||
+          (roleOverride === 'MECHANIC' ? 'MECHANIC' :
+           roleOverride === 'GL' ? 'GL / PENGAWAS' :
+           roleOverride === 'ADMIN' ? 'ADMIN' : 'DRIVER DT')
         );
+        const personPosition = String(data.position || roleOverride || personCategory || 'STAFF');
+
+        person = {
+          nik: nik,
+          name: personName,
+          category: personCategory,
+          position: personPosition,
+          assigned_unit: '',
+          team: '',
+          status: 'ACTIVE',
+          phone: String(data.phone || ''),
+          join_date: now,
+          created_at: now,
+          updated_at: now
+        };
+
+        appendObject_(FJB_SHEETS.PERSONNEL, person);
+        bumpFastCacheRevision_(FJB_SHEETS.PERSONNEL, true);
+
+        appendHistory_(
+          session,
+          'Master Data',
+          'CREATE',
+          nik,
+          'Personnel otomatis dibuat saat penambahan user',
+          { nik: nik, name: personName, category: personCategory }
+        );
+      } else if (data.name && String(data.name).trim() && String(data.name).trim() !== String(person.name || '')) {
+        updateRowObject_(FJB_SHEETS.PERSONNEL, person._row, {
+          name: String(data.name).trim(),
+          updated_at: now
+        });
+        bumpFastCacheRevision_(FJB_SHEETS.PERSONNEL, true);
       }
 
       if (
@@ -9901,8 +9940,6 @@ function apiSaveUserAccount(token, data) {
         'nik',
         nik
       );
-
-      const now = new Date();
 
       if (existing) {
         const patch = {

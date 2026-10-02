@@ -17595,16 +17595,180 @@ function openP2HMasterEditor(index){
 }
 
 async function loadUsers(force=false){
-  if(force && !APP.users.length){
+  if(force || !APP.users.length){
     const r=await server('apiListUsers',APP.token);
     APP.users=r.rows||[];
     APP.dataReady.users=true;
   }
   document.getElementById('usersBody').innerHTML=APP.users.map((x,i)=>`<tr><td class="strong">${esc(x.nik)}</td><td>${esc(x.name)}</td><td>${esc(x.category)}</td><td>${badge(x.role,roleTone(x.role))}</td><td>${badge(x.status,x.status==='ACTIVE'?'green':'gray')}</td><td>${fmtDateTime(x.last_login_at)}</td><td><div class="actions"><button class="btn sm" onclick="openUserEditor(${i})">Edit</button><button class="btn sm" onclick="resetUserPassword('${jsq(x.nik)}')">Reset Password</button></div></td></tr>`).join('');
 }
-function openUserEditor(index){
-  const x=index===undefined?{}:APP.users[index]||{};
-  openModal(index===undefined?'Tambah User':'Edit User',`<div class="form-grid"><div class="field"><label>NIK / NRP</label><input id="ueNik" value="${esc(x.nik||'')}" ${index!==undefined?'readonly':''}></div><div class="field"><label>Password ${index!==undefined?'(kosong = tidak diubah)':''}</label><input id="uePw" type="password"></div><div class="field"><label>Role Override</label><select id="ueRole"><option value="">AUTO DARI PERSONNEL</option>${['ADMIN','GL','OPERATOR','MECHANIC'].map(r=>`<option ${(x.role_override||'')===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>Status</label><select id="ueStatus"><option ${x.status!=='INACTIVE'?'selected':''}>ACTIVE</option><option ${x.status==='INACTIVE'?'selected':''}>INACTIVE</option></select></div><div class="field"><label>Must Change Password</label><select id="ueMust"><option value="false">NO</option><option value="true">YES</option></select></div></div><div class="muted" style="margin-top:8px">Personnel dengan NIK tersebut harus sudah tersedia di Master Personnel.</div>`,async()=>{showLoading('Simpan user...');try{await server('apiSaveUserAccount',APP.token,{nik:ueNik.value,password:uePw.value,role_override:ueRole.value,status:ueStatus.value,must_change_password:ueMust.value==='true'});closeModal();APP.historyDirty=true;await loadUsers(true);toast('User tersimpan')}catch(e){showError(e)}finally{hideLoading()}});
+
+window.onUserEditorNikChange = function(nikVal){
+  nikVal = String(nikVal || '').trim();
+  const p = (APP.personnelRows || []).find(item => String(item.nik).trim() === nikVal);
+  const nameInput = document.getElementById('ueName');
+  const catInput = document.getElementById('ueCategory');
+  const hintEl = document.getElementById('uePersonHint');
+  if(p){
+    if(nameInput) nameInput.value = p.name || '';
+    if(catInput){
+      const cat = String(p.category || '').toUpperCase();
+      if(cat.includes('ADMIN')) catInput.value = 'ADMIN';
+      else if(cat.includes('GL') || cat.includes('PENGAWAS') || cat.includes('FOREMAN')) catInput.value = 'GL / PENGAWAS';
+      else if(cat.includes('MECH')) catInput.value = 'MECHANIC';
+      else catInput.value = 'DRIVER DT';
+    }
+    if(hintEl) hintEl.innerHTML = `<span style="color:#059669">✓ Terhubung dengan Master Personnel: <b>${esc(p.name)}</b> (${esc(p.category || p.position || 'Staff')})</span>`;
+  } else if(nikVal) {
+    if(hintEl) hintEl.innerHTML = `<span style="color:#2563eb">ℹ️ NIK baru: Akun Master Personnel otomatis dibuat bersamaan saat disimpan.</span>`;
+  } else {
+    if(hintEl) hintEl.innerHTML = '';
+  }
+};
+
+async function openUserEditor(index){
+  let people = APP.personnelRows || [];
+  if(!people.length){
+    try {
+      const r = await server('apiGetMasterData', APP.token, 'personnel');
+      people = r.rows || [];
+      APP.personnelRows = people;
+    } catch(e){}
+  }
+  const x = index === undefined ? {} : APP.users[index] || {};
+  const existingPerson = people.find(p => String(p.nik).trim() === String(x.nik || '').trim()) || {};
+  const initialName = x.name || existingPerson.name || '';
+  const initialCategory = x.category || existingPerson.category || '';
+
+  const modalHtml = `
+    <div class="form-grid">
+      <div class="field">
+        <label>NIK / NRP <span style="color:var(--danger,#ef4444)">*</span></label>
+        <input id="ueNik" list="ueNikDatalist" value="${esc(x.nik || '')}" ${index !== undefined ? 'readonly' : ''} placeholder="Ketik NIK atau pilih karyawan" autocomplete="off" oninput="onUserEditorNikChange(this.value)">
+        <datalist id="ueNikDatalist">
+          ${people.map(p => `<option value="${esc(p.nik)}">${esc(p.name)} - ${esc(p.category || p.position || 'Personnel')}</option>`).join('')}
+        </datalist>
+      </div>
+      <div class="field">
+        <label>Nama Lengkap <span style="color:var(--danger,#ef4444)">*</span></label>
+        <input id="ueName" value="${esc(initialName)}" placeholder="Nama karyawan / pengguna">
+      </div>
+      <div class="field">
+        <label>Kategori / Departemen</label>
+        <select id="ueCategory">
+          <option value="ADMIN" ${initialCategory.toUpperCase().includes('ADMIN') ? 'selected' : ''}>ADMIN</option>
+          <option value="GL / PENGAWAS" ${initialCategory.toUpperCase().includes('GL') || initialCategory.toUpperCase().includes('PENGAWAS') ? 'selected' : ''}>GL / PENGAWAS</option>
+          <option value="DRIVER DT" ${initialCategory.toUpperCase().includes('DRIVER') || initialCategory.toUpperCase().includes('OPERATOR') ? 'selected' : ''}>DRIVER DT (OPERATOR)</option>
+          <option value="MECHANIC" ${initialCategory.toUpperCase().includes('MECH') ? 'selected' : ''}>MECHANIC</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Password ${index !== undefined ? '(kosong = tidak diubah)' : '<span style="color:var(--danger,#ef4444)">*</span>'}</label>
+        <input id="uePw" type="password" placeholder="${index !== undefined ? 'Kosongkan jika tidak diganti' : 'Minimal 6 karakter'}">
+      </div>
+      <div class="field">
+        <label>Role Akses Sistem</label>
+        <select id="ueRole">
+          <option value="">AUTO DARI KATEGORI</option>
+          ${['ADMIN','GL','OPERATOR','MECHANIC'].map(r => `<option ${(x.role_override || '') === r ? 'selected' : ''}>${r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="ueStatus">
+          <option ${x.status !== 'INACTIVE' ? 'selected' : ''}>ACTIVE</option>
+          <option ${x.status === 'INACTIVE' ? 'selected' : ''}>INACTIVE</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Wajib Ganti Password Saat Login</label>
+        <select id="ueMust">
+          <option value="false" ${x.must_change_password === false ? 'selected' : ''}>NO</option>
+          <option value="true" ${x.must_change_password !== false ? 'selected' : ''}>YES</option>
+        </select>
+      </div>
+    </div>
+    <div id="uePersonHint" style="font-size:12px;margin-top:6px;min-height:18px;">
+      ${x.nik ? (existingPerson.name ? `<span style="color:#059669">✓ Terhubung dengan Master Personnel: <b>${esc(existingPerson.name)}</b></span>` : '') : '<span class="muted">💡 Masukkan NIK karyawan dari list atau ketik NIK baru. Data Master Personnel akan disinkronkan otomatis.</span>'}
+    </div>
+  `;
+
+  openModal(index === undefined ? 'Tambah User' : 'Edit User', modalHtml, async () => {
+    const nikVal = String(ueNik.value || '').trim();
+    const nameVal = String(ueName.value || '').trim();
+    const catVal = String(ueCategory.value || '').trim();
+    const pwVal = String(uePw.value || '').trim();
+    const roleVal = String(ueRole.value || '').trim();
+    const statusVal = String(ueStatus.value || 'ACTIVE');
+    const mustVal = ueMust.value === 'true';
+
+    if (!nikVal) {
+      toast('NIK / NRP wajib diisi');
+      return;
+    }
+    if (index === undefined && (!pwVal || pwVal.length < 6)) {
+      toast('Password user baru minimal 6 karakter');
+      return;
+    }
+
+    showLoading('Menyimpan user...');
+    try {
+      // Pastikan Master Personnel tersedia atau disinkronkan
+      const pFound = (APP.personnelRows || []).find(p => String(p.nik).trim() === nikVal);
+      if (!pFound) {
+        try {
+          await server('apiSaveMasterData', APP.token, 'personnel', {
+            nik: nikVal,
+            name: nameVal || ('User ' + nikVal),
+            category: catVal || (roleVal === 'MECHANIC' ? 'MECHANIC' : (roleVal === 'GL' ? 'GL / PENGAWAS' : (roleVal === 'ADMIN' ? 'ADMIN' : 'DRIVER DT'))),
+            position: catVal || roleVal || 'STAFF',
+            status: statusVal
+          });
+          if (!APP.personnelRows) APP.personnelRows = [];
+          APP.personnelRows.push({
+            nik: nikVal,
+            name: nameVal || ('User ' + nikVal),
+            category: catVal,
+            position: catVal,
+            status: statusVal
+          });
+        } catch(errP) {
+          console.warn('Auto create personnel notice:', errP);
+        }
+      } else if (nameVal && nameVal !== pFound.name) {
+        try {
+          await server('apiSaveMasterData', APP.token, 'personnel', {
+            nik: nikVal,
+            name: nameVal,
+            category: catVal || pFound.category,
+            position: pFound.position || catVal,
+            status: statusVal
+          });
+          pFound.name = nameVal;
+        } catch(e){}
+      }
+
+      await server('apiSaveUserAccount', APP.token, {
+        nik: nikVal,
+        name: nameVal,
+        category: catVal,
+        password: pwVal,
+        role_override: roleVal,
+        status: statusVal,
+        must_change_password: mustVal
+      });
+
+      closeModal();
+      APP.historyDirty = true;
+      APP.users = [];
+      await loadUsers(true);
+      toast('User ' + nikVal + ' berhasil disimpan');
+    } catch(e) {
+      showError(e);
+    } finally {
+      hideLoading();
+    }
+  });
 }
 function resetUserPassword(nik){
   openModal('Reset Password',`<div class="field"><label>NIK</label><input value="${esc(nik)}" readonly></div><div style="height:8px"></div><div class="field"><label>Password Baru</label><input id="rpPw" type="password" placeholder="Minimal 6 karakter"></div><div style="height:8px"></div><div class="field"><label>Wajib ganti saat login</label><select id="rpMust"><option value="false">NO</option><option value="true">YES</option></select></div>`,async()=>{showLoading('Reset password...');try{await server('apiResetPassword',APP.token,nik,rpPw.value,rpMust.value==='true');closeModal();toast('Password direset')}catch(e){showError(e)}finally{hideLoading()}});
