@@ -2,5 +2,13 @@
   "name": "fjb01operation",
   "version": "2.6.5",
   "description": "FJB Operations Control System",
-  "private": true
+  "private": true,
+  "scripts": {
+    "push:gas": "npx @google/clasp push --force",
+    "push:git": "git push origin main",
+    "deploy": "cmd /c auto_deploy.bat"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  }
 }
