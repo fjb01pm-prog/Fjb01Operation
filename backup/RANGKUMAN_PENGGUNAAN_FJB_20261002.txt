@@ -1,0 +1,188 @@
+================================================================================
+                    RANGKUMAN PENGGUNAAN APLIKASI OPERASIONAL
+                     FJB OPERATIONS CONTROL SYSTEM (v2.6.5)
+                         PT. FORTUNA JAYA BERSAUDARA
+================================================================================
+
+Dokumen ini memuat panduan lengkap penggunaan sistem pemantauan dan kontrol
+operasional FJB dari awal hingga akhir, mulai dari akses awal, alur kerja
+shift harian, penjelasan modul-modul utama, hingga otomasi deploy.
+
+--------------------------------------------------------------------------------
+1. LINK AKSES RESMI & DATABASE
+--------------------------------------------------------------------------------
+- Link Aplikasi Web (PWA / Live Vercel) :
+  https://fjb01-operation-001.vercel.app
+
+- Link Database (Google Spreadsheet)   :
+  https://docs.google.com/spreadsheets/d/16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo/edit
+
+- Link Backend API (Google Apps Script Web App) :
+  https://script.google.com/macros/s/AKfycbwFHFYH4trkXYzrLR6Fl0sLH6fF2gToTBJJb9BDcjGLPcPqqAXb5vnbooaYw5_-QrED/exec
+
+- Script ID (Google Apps Script) :
+  1_bQAhI52jUE0sahZ4mVeXS3dihMoffL8LmQPJY5KbGKV9lW0jJvP9_iM
+
+- Repository Kode (GitHub) :
+  https://github.com/fjb01pm-prog/Fjb01Operation
+
+--------------------------------------------------------------------------------
+2. DAFTAR AKUN PENGGUNA & HAK AKSES (ROLE)
+--------------------------------------------------------------------------------
+Sistem memiliki 4 peran (role) dengan tugas dan wewenang berbeda:
+
+1. ADMIN
+   - NIK / NRP : 9000001
+   - Password  : admin123
+   - Wewenang  : Akses 100% penuh ke seluruh modul, manajemen akun user,
+                 konfigurasi sistem, audit log, input master data massal,
+                 dan monitoring eksekutif performa bulanan.
+
+2. GL / PENGAWAS LAPANGAN (GROUP LEADER)
+   - NIK / NRP : 3102001
+   - Password  : gl12345
+   - Wewenang  : Kontrol operasional shift Day/Night, absensi dan roster kru,
+                 monitoring pergerakan armada live, pencatatan kendala cuaca
+                 (hujan / slippery), dan verifikasi laporan shift.
+
+3. OPERATOR / DRIVER DUMP TRUCK
+   - NIK / NRP : 3101021
+   - Password  : op12345
+   - Wewenang  : Form keselamatan P2H (inspeksi kelayakan unit sebelum jalan),
+                 input jam kerja awal & akhir (HM Operation), dan status unit.
+
+4. MECHANIC / MEKANIK
+   - NIK / NRP : 4102101
+   - Password  : mech12345
+   - Wewenang  : Pelaporan unit breakdown di lapangan, tiket servis berkala,
+                 penggantian sparepart, dan pengembalian unit ke status READY.
+
+* Catatan: Terdapat tombol "Akun Demo" di bawah tombol login untuk memudahkan
+  pengujian cepat tanpa harus mengetik manual.
+
+--------------------------------------------------------------------------------
+3. CARA AKSES & INSTALL DI HP (ANDROID & IPHONE)
+--------------------------------------------------------------------------------
+Aplikasi ini menggunakan teknologi PWA (Progressive Web App), sangat ringan
+(< 1 MB), dan dapat di-install langsung di layar utama smartphone:
+
+A. Di HP Android (Google Chrome):
+   1. Buka https://fjb01-operation-001.vercel.app di Google Chrome.
+   2. Ketuk ikon titik tiga (⋮) di pojok kanan atas browser.
+   3. Pilih "Tambahkan ke Layar Utama" (Add to Home screen) atau "Install Aplikasi".
+   4. Ikon "FJB Ops" akan muncul di menu HP Anda dan terbuka layar penuh tanpa URL bar.
+
+B. Di iPhone / iPad (Safari):
+   1. Buka https://fjb01-operation-001.vercel.app di Safari.
+   2. Ketuk tombol Bagikan (Share - ikon kotak dengan panah ke atas di bilah bawah).
+   3. Gulir ke bawah lalu pilih "Add to Home Screen" (Tambah ke Layar Utama).
+   4. Ketuk "Add" di pojok kanan atas.
+
+C. Di Komputer / Laptop:
+   - Cukup buka link di browser (Google Chrome / Microsoft Edge). Tampilan otomatis
+     menyesuaikan monitor lebar (Desktop Control Room).
+
+--------------------------------------------------------------------------------
+4. ALUR SIKLUS OPERASIONAL HARIAN (AWAL SHIFT S/D TUTUP SHIFT)
+--------------------------------------------------------------------------------
+
++-------------+          +-----------------------+          +-------------+
+| AWAL SHIFT  |  =====>  | SELAMA SHIFT BERJALAN |  =====>  | TUTUP SHIFT |
++-------------+          +-----------------------+          +-------------+
+ • Cek Roster             • Ritase Hauling                   • Input HM Akhir
+ • Cek P2H Unit           • Pengisian Solar (Fuel)           • Antrean Cuci (Washing)
+ • Input HM Awal          • Monitoring Live Dashboard        • Rekap & Print PDF
+
+TAHAP 1: PERSIAPAN KERJA (AWAL SHIFT)
+1. GL / Pengawas memeriksa menu "Roster" untuk memastikan kehadiran kru yang
+   bertugas pada Shift Siang (Day) atau Shift Malam (Night).
+2. Operator / Driver mengambil unit dump truck yang ditugaskan.
+3. Driver membuka menu "P2H" (atau tombol cepat "＋ Quick Input") untuk mengisi
+   checklist keselamatan (Rem, Kemudi, Ban, Oli, Lampu, APAR, dll).
+4. Driver memasukkan angka "HM Awal" (Hour Meter) saat unit mulai dinyalakan.
+5. Jika unit tidak lolos P2H, unit otomatis berstatus BREAKDOWN. Mekanik segera
+   menerima laporan dan membuka tiket perbaikan di menu "Maintenance".
+
+TAHAP 2: OPERASIONAL BERJALAN (SELAMA SHIFT)
+1. Pencatatan Ritase Hauling:
+   - Setiap trip pengangkutan material / batu bara dicatat via menu "Hauling".
+   - Data mencakup: Nomor Unit, Nama Driver, Lokasi Muat (Pit), Lokasi Buang
+     (ROM / Disposal), dan Estimasi Tonase.
+2. Pengisian Bahan Bakar (Fuel Usage):
+   - Petugas fuel mencatat setiap pengisian solar di menu "Fuel Usage".
+   - Sistem secara otomatis mengkalkulasi rasio konsumsi Liter/Jam HM untuk
+     mendeteksi adanya unit yang boros atau kebocoran.
+3. Monitoring Pusat Kendali (Dashboard):
+   - GL dan Manajemen memantau metrik performa secara real-time di Dashboard:
+     * Executive Health (%) : Skor kesehatan operasional gabungan.
+     * Fleet Availability (%) : Rasio unit siap kerja (RFU) vs breakdown.
+     * Hauling Production : Akumulasi tonase dan ritase hari ini.
+     * Toggle Periode : Memilih antara mode "Harian Live" atau "1 Bulan Penuh".
+
+TAHAP 3: AKHIR OPERASIONAL (PENUTUPAN SHIFT)
+1. Operator memasukkan angka "HM Akhir" di menu "HM Operation".
+   - Dilengkapi proteksi "HM Live Recheck": Sistem otomatis menolak jika angka
+     HM akhir lebih kecil dari HM awal untuk mencegah kekeliruan ketik.
+2. Unit yang telah selesai beroperasi diarahkan ke antrean pencucian di menu
+   "Washing" sebelum diserahterimakan.
+3. GL / Admin membuka menu "Reports" untuk melihat rangkuman shift, lalu klik
+   tombol "Cetak / Export PDF" sebagai dokumen serah terima shift (Handover).
+
+--------------------------------------------------------------------------------
+5. FITUR-FITUR KHUSUS DAN KEUNGGULAN SISTEM
+--------------------------------------------------------------------------------
+
+1. TOMBOL "＋ QUICK INPUT" (POJOK KANAN ATAS):
+   - Memungkinkan pengawas atau operator menginput data cepat apa saja
+     (Hauling, Solar, P2H, Breakdown) dari halaman mana saja tanpa berpindah menu.
+
+2. KECEPATAN INSTAN (INSTANT RELOAD < 30 MILIDETIK):
+   - Menggunakan teknologi Stale-While-Revalidate (SWR) dan caching browser lokal.
+   - Saat Anda menekan Refresh / F5 di browser, aplikasi akan terbuka seketika
+     (< 30 milidetik) tanpa layar loading "Memulihkan aplikasi..." yang lama.
+   - Pengecekan data baru dari Google Spreadsheet berjalan secara senyap di
+     latar belakang (silent background sync) tanpa mengganggu pengguna.
+
+3. MENGINGAT POSISI HALAMAN (SMART PAGE RETENTION):
+   - Jika Anda sedang membuka menu Hauling, Users, atau Roster lalu me-reload
+     halaman, aplikasi langsung kembali ke menu tersebut secara otomatis.
+
+4. MASTER DATA (BULK EDIT & EXCEL PASTE IMPORTER):
+   - Admin dapat mengedit puluhan baris data sekaligus langsung di tabel web
+     dengan fitur "Bulk Edit".
+   - Admin dapat menyalin (copy) ratusan baris data dari Microsoft Excel /
+     Google Spreadsheet, lalu menempelkannya (paste) ke web untuk simpan massal.
+
+5. MANAJEMEN PENGGUNA TERINTEGRASI (MENU USERS):
+   - Admin dapat menambahkan akun user baru langsung lengkap dengan NIK, Nama,
+     dan Kategori.
+   - Sistem secara otomatis membuat dan menyinkronkan data karyawan ke Master
+     Personnel di Google Spreadsheet tanpa perlu berpindah-pindah menu.
+
+--------------------------------------------------------------------------------
+6. PANDUAN AUTO-DEPLOY (SINKRONISASI KODE OTOMATIS)
+--------------------------------------------------------------------------------
+Jika di kemudian hari ada pembaruan kode, Anda dapat memperbarui seluruh sistem
+(Google Apps Script dan Vercel) dalam 1 kali langkah:
+
+Cara 1: Klik 2x (Double-Click) File Batch
+- Buka folder proyek di komputer Anda dan klik 2x file:
+  auto_deploy.bat
+
+Cara 2: Lewat Terminal PowerShell / VS Code
+- Jalankan perintah:
+  npm run deploy
+
+Apa yang dikerjakan secara otomatis oleh skrip deploy:
+1. Sinkronisasi file lokal index.html dan index.txt.
+2. Mengirim kode terbaru ke Google Apps Script (Script ID: 1_bQAhI52jUE0sahZ4mVeXS3dihMoffL8LmQPJY5KbGKV9lW0jJvP9_iM).
+3. Membuat versi baru Google Apps Script.
+4. Melakukan commit dan git push ke GitHub yang otomatis memicu build di Vercel.
+
+* Otorisasi Satu Kali (Jika Belum Dilakukan):
+  Jalankan 'npx @google/clasp login' di terminal dan pilih akun pemilik script
+  (fjb.01pm@gmail.com) agar hak deploy ke Google Apps Script aktif penuh.
+
+================================================================================
+     DOKUMEN RESMI PANDUAN PENGGUNAAN - PT. FORTUNA JAYA BERSAUDARA (2026)
+================================================================================
