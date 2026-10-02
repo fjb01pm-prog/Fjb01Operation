@@ -1,0 +1,5 @@
+# Abaikan semua file kecuali file Apps Script yang diperlukan
+**/**
+!appsscript.json
+!code.gs
+!index.html
