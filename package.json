@@ -6,7 +6,7 @@
   "scripts": {
     "push:gas": "npx @google/clasp push --force",
     "push:git": "git push origin main",
-    "deploy": "cmd /c auto_deploy.bat"
+    "deploy": "node scripts/auto-deploy.js"
   },
   "devDependencies": {
     "@google/clasp": "^3.4.1"
