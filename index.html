@@ -6599,7 +6599,17 @@ function startBackgroundSync(){
 // CLOUD API & DUAL ENVIRONMENT BRIDGE (GAS + VERCEL HOSTING)
 // ============================================================
 
-const FJB_API_URL = 'https://script.google.com/macros/s/AKfycbxucnBKxz4CqOHMsmyGWXR4OLX-CIWj6q5g0NxAxb0WyWs0wxHFj_sk9wlVSbBchEEO/exec';
+const FJB_API_URL = 'https://script.google.com/macros/s/AKfycbwFHFYH4trkXYzrLR6Fl0sLH6fF2gToTBJJb9BDcjGLPcPqqAXb5vnbooaYw5_-QrED/exec';
+
+function getApiUrl() {
+  try {
+    const custom = localStorage.getItem('fjb_api_url');
+    if (custom && custom.trim().startsWith('https://script.google.com/macros/s/')) {
+      return custom.trim();
+    }
+  } catch (e) {}
+  return FJB_API_URL;
+}
 
 function isGasEnvironment() {
   return typeof google !== 'undefined' && Boolean(google && google.script && google.script.run);
@@ -6623,7 +6633,7 @@ function server(fn,...args){
     }
 
     // Mode 2: Vercel / External Web Hosting -> Direct HTTP POST to Google Apps Script Web App
-    fetch(FJB_API_URL,{
+    fetch(getApiUrl(),{
       method:'POST',
       headers:{
         'Content-Type':'text/plain;charset=utf-8'

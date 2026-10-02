@@ -32,6 +32,8 @@
 const FJB_VERSION = '2.6.5';
 const SESSION_TTL_HOURS = 8;
 const FJB_DEFAULT_SPREADSHEET_ID = '16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo';
+const FJB_SCRIPT_ID = '1_bQAhI52jUE0sahZ4mVeXS3dihMoffL8LmQPJY5KbGKV9lW0jJvP9_iM';
+const FJB_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwFHFYH4trkXYzrLR6Fl0sLH6fF2gToTBJJb9BDcjGLPcPqqAXb5vnbooaYw5_-QrED/exec';
 
 // Fast runtime object cache.
 // Spreadsheet/Sheet objects are reused inside a warm Apps Script instance.

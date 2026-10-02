@@ -17,8 +17,14 @@ mekanik yang terhubung secara real-time ke Google Spreadsheet perusahaan.
 - Link Repository Kode (GitHub)   :
   https://github.com/fjb01pm-prog/Fjb01Operation
 
+- Link Apps Script Web App (API)  :
+  https://script.google.com/macros/s/AKfycbwFHFYH4trkXYzrLR6Fl0sLH6fF2gToTBJJb9BDcjGLPcPqqAXb5vnbooaYw5_-QrED/exec
+
+- Script ID (Google Apps Script)  :
+  1_bQAhI52jUE0sahZ4mVeXS3dihMoffL8LmQPJY5KbGKV9lW0jJvP9_iM
+
 - Link Database (Google Sheets)   :
-  https://docs.google.com/spreadsheets/d/16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo/edit
+  https://docs.google.com/spreadsheets/d/16SztjFNvt28Hm9cfo_uw_0_5Nhd_LSdsTB9KLyPZPKo/edit?gid=691232406#gid=691232406
 
 --------------------------------------------------------------------------------
 2. DAFTAR AKUN PENGGUNA & HAK AKSES (ROLE)
