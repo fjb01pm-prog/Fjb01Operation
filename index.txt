@@ -5199,16 +5199,10 @@ const FJB_BROWSER_CACHE_MAX_AGE_MS=
   6*60*60*1000;
 
 
-function browserDataCacheKey(){
-  const nik=
-    String(
-      APP.session?.nik||''
-    );
-
-  const role=
-    String(
-      APP.session?.role||''
-    );
+function browserDataCacheKey(sessionOverride){
+  const sess = sessionOverride || APP.session;
+  const nik = String(sess?.nik || '');
+  const role = String(sess?.role || '');
 
   return [
     'FJB_DATA',
@@ -5295,31 +5289,29 @@ function savePersistentDataCache(
   bundle
 ){
   try{
-    const stamp=
-      String(
-        bundle?.cache_stamp||
-        APP.cacheStamp||
-        ''
-      );
-
-    if(
-      !stamp ||
-      !bundle
-    ){
+    if(!bundle){
       return false;
     }
 
-    localStorage.setItem(
-      browserDataCacheKey(),
-      JSON.stringify({
-        version:
-          FJB_BROWSER_CACHE_VERSION,
-        stamp:stamp,
-        saved_at:
-          Date.now(),
-        bundle:bundle
-      })
-    );
+    const stamp=
+      String(
+        bundle.cache_stamp||
+        APP.cacheStamp||
+        ('stamp_' + Date.now())
+      );
+
+    const payload = JSON.stringify({
+      version:
+        FJB_BROWSER_CACHE_VERSION,
+      stamp:stamp,
+      saved_at:
+        Date.now(),
+      bundle:bundle
+    });
+
+    const key = browserDataCacheKey();
+    localStorage.setItem(key, payload);
+    try { sessionStorage.setItem(key, payload); } catch(_){}
 
     return true;
 
@@ -7503,18 +7495,45 @@ function clearLoginError(){document.getElementById('loginError').classList.remov
 function saveToken(token,remember){
   sessionStorage.removeItem('fjb_token'); localStorage.removeItem('fjb_token');
   sessionStorage.removeItem('fjb_session'); localStorage.removeItem('fjb_session');
-  (remember?localStorage:sessionStorage).setItem('fjb_token',token);
+  localStorage.setItem('fjb_token',token);
+  sessionStorage.setItem('fjb_token',token);
   if(APP.session){
-    (remember?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
+    const sJson = JSON.stringify(APP.session);
+    localStorage.setItem('fjb_session',sJson);
+    sessionStorage.setItem('fjb_session',sJson);
   }
 }
 
-function loadLatestBrowserCache(){
+function loadLatestBrowserCache(sessionOverride){
   try{
-    const raw=localStorage.getItem(browserDataCacheKey());
+    const sess = sessionOverride || APP.session;
+    // 1. Coba key spesifik user
+    let key = browserDataCacheKey(sess);
+    let raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+
+    // 2. Jika belum ada, scan localStorage untuk key FJB_DATA_
+    if(!raw){
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('FJB_DATA_' + FJB_BROWSER_CACHE_VERSION)){
+          raw = localStorage.getItem(k);
+          if(raw) break;
+        }
+      }
+    }
+    if(!raw){
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('FJB_DATA_')){
+          raw = localStorage.getItem(k);
+          if(raw) break;
+        }
+      }
+    }
+
     if(!raw) return null;
-    const saved=JSON.parse(raw);
-    if(!saved||!saved.bundle) return null;
+    const saved = JSON.parse(raw);
+    if(!saved || !saved.bundle) return null;
     return saved.bundle;
   }catch(err){
     return null;
@@ -7523,19 +7542,6 @@ function loadLatestBrowserCache(){
 
 async function verifySessionAndRefreshBackground(){
   try{
-    const sessionRes=await waitWithTimeout(
-      serverJson('apiSessionJson',APP.token),
-      8000,
-      'SESSION_RESTORE_TIMEOUT'
-    );
-    if(!sessionRes?.ok||!sessionRes?.session){
-      throw new Error('Session expired');
-    }
-    APP.session=sessionRes.session;
-    try{
-      (localStorage.getItem('fjb_token')?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
-    }catch(_){}
-
     const stampRes=await waitWithTimeout(
       serverJson('apiGetCacheStampJson',APP.token),
       5000,
@@ -7550,7 +7556,7 @@ async function verifySessionAndRefreshBackground(){
     }
   }catch(err){
     const msg=String(err||'');
-    if(msg.includes('Session expired')||msg.includes('tidak valid')){
+    if(msg.includes('Session expired')||msg.includes('tidak valid')||msg.includes('SESSION_NOT_FOUND')){
       sessionStorage.removeItem('fjb_token');localStorage.removeItem('fjb_token');
       sessionStorage.removeItem('fjb_session');localStorage.removeItem('fjb_session');
       showLogin();
@@ -7560,12 +7566,8 @@ async function verifySessionAndRefreshBackground(){
 
 async function restoreToken(){
   APP.token=
-    sessionStorage.getItem(
-      'fjb_token'
-    )||
-    localStorage.getItem(
-      'fjb_token'
-    )||
+    sessionStorage.getItem('fjb_token')||
+    localStorage.getItem('fjb_token')||
     '';
 
   if(!APP.token){
@@ -7573,122 +7575,81 @@ async function restoreToken(){
     return;
   }
 
-  // 1. INSTANT RESTORE (< 50ms): Render seketika menggunakan session & cache lokal
+  // 1. INSTANT RESTORE (< 30ms): Render seketika menggunakan session & cache lokal
   let fastSession=null;
   try{
     const rawSession=sessionStorage.getItem('fjb_session')||localStorage.getItem('fjb_session');
     if(rawSession) fastSession=JSON.parse(rawSession);
   }catch(_){}
 
-  const cachedBundle=loadLatestBrowserCache();
+  // KUNCI: Pasang APP.session SEBELUM memanggil loadLatestBrowserCache
+  if(fastSession && fastSession.role){
+    APP.session = fastSession;
+  }
+
+  const cachedBundle = loadLatestBrowserCache(fastSession);
 
   if(fastSession && cachedBundle){
-    APP.session=fastSession;
-    APP.justLoggedIn=false;
+    APP.session = fastSession;
+    APP.justLoggedIn = false;
     resetPageCaches();
-    applyInitialCacheBundle(cachedBundle,false);
+    applyInitialCacheBundle(cachedBundle, false);
 
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     renderSidebar();
-    await navigate('dashboard',true);
+
+    const lastPage = sessionStorage.getItem('fjb_last_page') || 'dashboard';
+    await navigate(lastPage, true);
     startBackgroundSync();
 
+    // Verifikasi sesi & sinkronisasi data terbaru secara senyap (SWR) di background
+    // TANPA SPINNER ATAU LOADING SCREEN
     verifySessionAndRefreshBackground();
     return;
   }
 
-  // 2. FRESH RESTORE: Jika cache lokal belum ada, ambil dari server
-  showLoading(
-    'Memulihkan aplikasi...'
-  );
-
+  // 2. FRESH RESTORE: Jika cache lokal belum ada (login pertama di browser baru)
+  showLoading('Memulihkan aplikasi...');
   resetWarmProgress();
   startLoginAnimation();
 
   try{
-    const sessionRes=
-      await waitWithTimeout(
-        serverJson(
-          'apiSessionJson',
-          APP.token
-        ),
+    let sessionRes = null;
+    if(fastSession && fastSession.role){
+      sessionRes = { ok: true, session: fastSession };
+    } else {
+      sessionRes = await waitWithTimeout(
+        serverJson('apiSessionJson', APP.token),
         8000,
         'SESSION_RESTORE_TIMEOUT'
       );
-
-    if(
-      !sessionRes?.ok ||
-      !sessionRes?.session
-    ){
-      throw new Error(
-        'Session tidak valid'
-      );
     }
 
-    APP.session=
-      sessionRes.session;
+    if(!sessionRes?.ok || !sessionRes?.session){
+      throw new Error('Session tidak valid');
+    }
 
-    APP.justLoggedIn=false;
+    APP.session = sessionRes.session;
+    APP.justLoggedIn = false;
 
     try{
-      (localStorage.getItem('fjb_token')?localStorage:sessionStorage).setItem('fjb_session',JSON.stringify(APP.session));
+      const sJson = JSON.stringify(APP.session);
+      localStorage.setItem('fjb_session', sJson);
+      sessionStorage.setItem('fjb_session', sJson);
     }catch(_){}
 
     resetPageCaches();
 
-    let browserCache=null;
+    let browserCache = loadLatestBrowserCache(APP.session);
 
-    try{
-      const stampRes=
-        await waitWithTimeout(
-          serverJson(
-            'apiGetCacheStampJson',
-            APP.token
-          ),
-          4000,
-          'STAMP_TIMEOUT'
-        );
-
-      APP.authCacheStamp=
-        String(
-          stampRes?.stamp||''
-        );
-
-      browserCache=
-        loadPersistentDataCache(
-          APP.authCacheStamp
-        );
-
-    }catch(stampErr){
-      // Fallback to server initial cache.
-    }
-
-    await loadApp(
-      browserCache
-    );
+    await loadApp(browserCache);
 
   }catch(err){
     stopLoginAnimation();
-
-    sessionStorage.removeItem(
-      'fjb_token'
-    );
-
-    localStorage.removeItem(
-      'fjb_token'
-    );
-
-    sessionStorage.removeItem(
-      'fjb_session'
-    );
-
-    localStorage.removeItem(
-      'fjb_session'
-    );
-
+    sessionStorage.removeItem('fjb_token'); localStorage.removeItem('fjb_token');
+    sessionStorage.removeItem('fjb_session'); localStorage.removeItem('fjb_session');
     showLogin();
-
   }finally{
     hideLoading();
   }
@@ -8105,6 +8066,7 @@ async function navigate(
   }
 
   APP.currentPage=page;
+  try{ sessionStorage.setItem('fjb_last_page', page); }catch(_){}
 
   document.querySelectorAll(
     '.page'
